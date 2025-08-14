@@ -38,6 +38,13 @@
   - Name the test methods more verbosely. Write the test method name using Given-When-Then format.
   - Add `@DisplayName` annotation to all test methods and use descriptive names as the values of the annotation.
 
+## Code Coverage
+
+- When asked to increase a specific source code file, check the coverage report of the said source code file first.
+- The coverage report of a source code file can be found in `target/site/jacoco/[package name]/[class name].html`.
+- When reading the coverage report, identify which lines and branches that yet to be covered.
+- Make sure to run `mvn test` before and after adding tests.
+
 ## Maven
 
 - Prefer to use Maven wrapper (`mvnw`) instead of directly calling `mvn` command.

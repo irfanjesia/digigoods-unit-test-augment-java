@@ -36,6 +36,7 @@ class DiscountServiceTest {
   private Discount validDiscount;
   private Discount expiredDiscount;
   private Discount noUsesDiscount;
+  private Discount notYetValidDiscount;
 
   @BeforeEach
   void setUp() {
@@ -47,6 +48,10 @@ class DiscountServiceTest {
 
     noUsesDiscount = new Discount(3L, "NOUSES15", new BigDecimal("15.00"), DiscountType.GENERAL,
         LocalDate.now().minusDays(1), LocalDate.now().plusDays(30), 0, new HashSet<>());
+
+    notYetValidDiscount = new Discount(4L, "FUTURE25", new BigDecimal("25.00"),
+        DiscountType.GENERAL, LocalDate.now().plusDays(1), LocalDate.now().plusDays(30), 5,
+        new HashSet<>());
   }
 
   @Test
@@ -123,6 +128,20 @@ class DiscountServiceTest {
     // Arrange
     List<String> discountCodes = List.of("NOUSES15");
     when(discountRepository.findAllByCodeIn(discountCodes)).thenReturn(List.of(noUsesDiscount));
+
+    // Act & Assert
+    assertThrows(InvalidDiscountException.class,
+        () -> discountService.validateAndGetDiscounts(discountCodes));
+  }
+
+  @Test
+  @DisplayName("Given discount that is not yet valid, when validating discounts, "
+      + "then throw InvalidDiscountException")
+  void givenDiscountNotYetValid_whenValidatingDiscounts_thenThrowInvalidDiscountException() {
+    // Arrange
+    List<String> discountCodes = List.of("FUTURE25");
+    when(discountRepository.findAllByCodeIn(discountCodes))
+        .thenReturn(List.of(notYetValidDiscount));
 
     // Act & Assert
     assertThrows(InvalidDiscountException.class,

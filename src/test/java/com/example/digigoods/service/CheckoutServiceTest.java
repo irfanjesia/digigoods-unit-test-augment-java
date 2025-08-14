@@ -134,4 +134,82 @@ class CheckoutServiceTest {
     assertEquals("Order created successfully!", response.getMessage());
     assertEquals(new BigDecimal("100.00"), response.getFinalPrice());
   }
+
+  @Test
+  @DisplayName("Given product-specific discount, when processing checkout, "
+      + "then apply discount to applicable products")
+  void givenProductSpecificDiscount_whenProcessingCheckout_thenApplyDiscountToApplicableProducts() {
+    // Arrange
+    HashSet<Product> applicableProducts = new HashSet<>();
+    applicableProducts.add(product1); // Only product1 is applicable for the discount
+
+    Discount productSpecificDiscount = new Discount(3L, "PRODUCT10", new BigDecimal("10.00"),
+        DiscountType.PRODUCT_SPECIFIC, LocalDate.now().minusDays(1), LocalDate.now().plusDays(30),
+        10, applicableProducts);
+
+    CheckoutRequest productSpecificRequest = new CheckoutRequest(1L, List.of(1L, 2L),
+        List.of("PRODUCT10"));
+
+    when(productService.getProductsByIds(anyList())).thenReturn(List.of(product1, product2));
+    when(discountService.validateAndGetDiscounts(anyList()))
+        .thenReturn(List.of(productSpecificDiscount));
+    when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+    // Act
+    OrderResponse response = checkoutService.processCheckout(productSpecificRequest, 1L);
+
+    // Assert
+    assertEquals("Order created successfully!", response.getMessage());
+    // Product1: 100 - (100 * 0.10) = 90, Product2: 50 (no discount) = Total: 140
+    assertEquals(new BigDecimal("140.00"), response.getFinalPrice());
+    verify(orderRepository).save(any());
+    verify(productService).validateAndUpdateStock(anyList());
+    verify(discountService).updateDiscountUsage(anyList());
+  }
+
+  @Test
+  @DisplayName("Given mixed discount types, when processing checkout, "
+      + "then apply product-specific first then general discounts")
+  void givenMixedDiscountTypes_whenProcessingCheckout_thenApplyDiscountsInCorrectOrder() {
+    // Arrange
+    HashSet<Product> applicableProducts = new HashSet<>();
+    applicableProducts.add(product1);
+
+    Discount productSpecificDiscount = new Discount(3L, "PRODUCT10", new BigDecimal("10.00"),
+        DiscountType.PRODUCT_SPECIFIC, LocalDate.now().minusDays(1), LocalDate.now().plusDays(30),
+        10, applicableProducts);
+
+    CheckoutRequest mixedRequest = new CheckoutRequest(1L, List.of(1L, 2L),
+        List.of("PRODUCT10", "GENERAL20"));
+
+    when(productService.getProductsByIds(anyList())).thenReturn(List.of(product1, product2));
+    when(discountService.validateAndGetDiscounts(anyList())).thenReturn(
+        List.of(productSpecificDiscount, generalDiscount));
+    when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+    // Act
+    OrderResponse response = checkoutService.processCheckout(mixedRequest, 1L);
+
+    // Assert
+    assertEquals("Order created successfully!", response.getMessage());
+    // Step 1: Product1: 100 - 10 = 90, Product2: 50 = Subtotal: 140
+    // Step 2: General discount: 140 * 0.8 = 112
+    assertEquals(new BigDecimal("112.00"), response.getFinalPrice());
+  }
+
+  @Test
+  @DisplayName("Given user not found, when processing checkout, then throw RuntimeException")
+  void givenUserNotFound_whenProcessingCheckout_thenThrowRuntimeException() {
+    // Arrange
+    when(productService.getProductsByIds(anyList())).thenReturn(List.of(product1));
+    when(discountService.validateAndGetDiscounts(anyList())).thenReturn(List.of());
+    when(userRepository.findById(1L)).thenReturn(Optional.empty()); // User not found
+
+    CheckoutRequest request = new CheckoutRequest(1L, List.of(1L), List.of());
+
+    // Act & Assert
+    RuntimeException exception = assertThrows(RuntimeException.class,
+        () -> checkoutService.processCheckout(request, 1L));
+    assertEquals("User not found", exception.getMessage());
+  }
 }
