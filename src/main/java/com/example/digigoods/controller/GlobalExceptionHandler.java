@@ -7,6 +7,7 @@ import com.example.digigoods.exception.InvalidDiscountException;
 import com.example.digigoods.exception.MissingJwtTokenException;
 import com.example.digigoods.exception.ProductNotFoundException;
 import com.example.digigoods.exception.UnauthorizedAccessException;
+import com.example.digigoods.exception.UserNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
@@ -23,9 +24,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-  @ExceptionHandler(ProductNotFoundException.class)
-  public ResponseEntity<ErrorResponse> handleProductNotFoundException(
-      ProductNotFoundException ex, HttpServletRequest request) {
+  @ExceptionHandler({ProductNotFoundException.class, UserNotFoundException.class})
+  public ResponseEntity<ErrorResponse> handleNotFoundExceptions(
+      RuntimeException ex, HttpServletRequest request) {
     ErrorResponse error = new ErrorResponse(
         HttpStatus.NOT_FOUND.value(),
         "Not Found",
