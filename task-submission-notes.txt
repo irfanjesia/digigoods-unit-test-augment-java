@@ -584,7 +584,7 @@ The existing `.augment-guidelines.md` includes:
 1. $env:JAVA_HOME = "C:\Program Files\Java\jdk-21"; ./mvnw test
 2. $env:JAVA_HOME = "C:\Program Files\Java\jdk-21"; ./mvnw jacoco:report
 
-Run in powershell (alternatives):
+### Run in powershell (alternatives):
 1. Invoke-Item target/site/jacoco/index.html
 2. start target/site/jacoco/index.html
 3. npx open-cli target/site/jacoco/index.html
